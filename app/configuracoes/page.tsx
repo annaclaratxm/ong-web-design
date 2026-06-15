@@ -6,13 +6,14 @@ import { ArrowLeft, Bell, BookOpen, Palette, Save, Shield, User } from "lucide-r
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { AuthGuard } from "@/components/auth/auth-guard"
-import { ProfileSection } from "@/components/settings/profile-section"
-import { SecuritySection } from "@/components/settings/security-section"
-import { NotificationsSection } from "@/components/settings/notifications-section"
-import { AppearanceSection } from "@/components/settings/appearance-section"
-import { notificacoesPadrao, perfilPadrao } from "@/lib/data/settings"
-import type { ChaveNotificacao, PerfilData } from "@/lib/data/settings"
+import { AuthGuard } from "@/components/auth/AuthGuard"
+import { useLocalStorage } from "@/hooks/useLocalStorage"
+import { ProfileSection } from "@/components/settings/ProfileSection"
+import { SecuritySection } from "@/components/settings/SecuritySection"
+import { NotificationsSection } from "@/components/settings/NotificationsSection"
+import { AppearanceSection } from "@/components/settings/AppearanceSection"
+import { settingsService } from "@/services/settingsService"
+import type { NotificationKey, ProfileData } from "@/types/settings"
 
 type AbaConfiguracao = "perfil" | "seguranca" | "notificacoes" | "aparencia"
 
@@ -26,14 +27,14 @@ const abas: { id: AbaConfiguracao; label: string; icon: LucideIcon }[] = [
 export default function ConfiguracoesPage() {
   const router = useRouter()
   const [abaAtiva, setAbaAtiva] = useState<AbaConfiguracao>("perfil")
-  const [perfil, setPerfil] = useState<PerfilData>(perfilPadrao)
-  const [notificacoes, setNotificacoes] = useState(notificacoesPadrao)
-  const [tema, setTema] = useState("claro")
+  const [perfil, setPerfil] = useState<ProfileData>(settingsService.getDefaultProfile())
+  const [notificacoes, setNotificacoes] = useState(settingsService.getDefaultNotifications())
+  const [tema, setTema] = useLocalStorage("tema", "claro")
 
-  const atualizarPerfil = (campo: keyof PerfilData, valor: string) =>
+  const atualizarPerfil = (campo: keyof ProfileData, valor: string) =>
     setPerfil((atual) => ({ ...atual, [campo]: valor }))
 
-  const alternarNotificacao = (chave: ChaveNotificacao, valor: boolean) =>
+  const alternarNotificacao = (chave: NotificationKey, valor: boolean) =>
     setNotificacoes((atual) => ({ ...atual, [chave]: valor }))
 
   return (

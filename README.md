@@ -1,179 +1,137 @@
-# Centro Educacional Pequeno Milagre — Sistema de Gestão
+# Sistema de Gestão Educacional — Centro Educacional Pequeno Milagre
 
-Aplicação web de gestão para uma ONG/centro educacional voltado a crianças com
-TEA (Transtorno do Espectro Autista). O sistema oferece autenticação, um painel
-administrativo (dashboard), calendário de atividades, acompanhamento de alunos,
-catálogo de atividades educacionais e uma área de configurações.
+Aplicação web de gestão para um centro educacional voltado ao atendimento de
+crianças com TEA (Transtorno do Espectro Autista). Oferece autenticação, painel
+(dashboard), calendário de atividades, acompanhamento de alunos, catálogo de
+atividades educacionais e configurações de usuário.
 
-Este repositório é o resultado de um trabalho de **refatoração**. Ele contém
-dois branches:
+Disciplina: **Clean Code** — Integrantes: Anna Clara de Medeiros, Arturo Burigo
+e Luiz Bezerra.
 
-- **`original`** — versão antiga do projeto (scaffold gerado com v0/shadcn,
-  antes da refatoração);
-- **`main`** — versão refatorada, modularizada, testada e com linter.
+Este repositório contém dois branches:
+
+- **`original`** — versão antiga do projeto, antes da refatoração;
+- **`main`** — versão refatorada (descrita neste README).
 
 ---
 
-## 1. Descrição do software e principais funcionalidades
+## 1. Funcionalidades
 
-| Funcionalidade | Descrição |
+| Módulo | Descrição |
 | --- | --- |
-| **Login** | Tela de autenticação com validação de e-mail e senha, opção "lembrar-me" e mensagens de erro. |
-| **Dashboard** | KPIs do centro (alunos ativos, atividades do dia, progresso médio, reuniões), lista de próximas atividades e progresso recente dos alunos. |
-| **Calendário** | Grade mensal com destaque do dia atual e dos dias com atividade, além da agenda do dia. |
-| **Alunos** | Cartões de acompanhamento individual com barra de progresso e tags. |
-| **Atividades** | Catálogo de atividades educacionais oferecidas pelo centro. |
-| **Configurações** | Perfil, segurança (troca de senha e sessões), preferências de notificação e aparência. |
+| **Login** | Autenticação com validação (Zod) de e-mail e senha, opção "lembrar-me", mostrar/ocultar senha e mensagens de erro. |
+| **Dashboard** | Métricas (alunos ativos, atividades do dia, progresso médio, reuniões), próximas atividades e progresso recente dos alunos. |
+| **Calendário** | Grade mensal com destaque do dia atual e dias com atividade, e agenda do dia. |
+| **Alunos** | Cartões de acompanhamento individual com barra de progresso e badges. |
+| **Atividades** | Catálogo de atividades educacionais por tipo. |
+| **Configurações** | Perfil, segurança, notificações e aparência (tema persistido em localStorage). |
 
 ### Stack
 
-- **Next.js 15** (App Router) + **React 19** + **TypeScript**
-- **Tailwind CSS 4** + componentes **shadcn/ui** (Radix UI)
-- **Vitest** + **Testing Library** para testes
-- **ESLint** (`eslint-config-next`) para linting
+Next.js 15 (App Router) · React 19 · TypeScript 5 · TailwindCSS 4 · shadcn/ui
+(Radix) · Zod (validação) · Vitest + Testing Library (testes) · ESLint +
+Prettier + Husky/lint-staged (qualidade).
 
-> A autenticação é simulada (mock) e os dados são fixos/de exemplo — o foco do
-> trabalho é a qualidade do código, não a integração com um backend real.
+> Autenticação simulada e dados de exemplo — o foco é a qualidade do código.
 
 ---
 
-## 2. Análise dos principais problemas detectados (code smells)
+## 2. Principais problemas detectados (code smells)
 
-A versão `original` concentrava praticamente toda a aplicação em três arquivos
-(`app/page.tsx` com **613 linhas**, `app/configuracoes/page.tsx` com 439 e
-`app/login/page.tsx` com 138). Os principais problemas:
+A versão `original` concentrava a aplicação em três arquivos (`app/page.tsx` com
+**613 linhas**, `app/configuracoes/page.tsx` com 439 e `app/login/page.tsx` com
+138).
 
-1. **God Component** — `app/page.tsx` acumulava autenticação, tela de login,
-   "roteamento" e a renderização das quatro telas internas em um único
-   componente de 613 linhas.
-2. **Código duplicado** — o formulário de login existia tanto embutido em
-   `page.tsx` quanto em `app/login/page.tsx` (rota órfã, nunca navegada). Além
-   disso, lógica de iniciais do avatar (`nome.split(" ").map(n => n[0]).join("")`),
-   barras de progresso, cabeçalhos de página, sidebar e o botão de mostrar/ocultar
-   senha (4×) estavam copiados em vários lugares.
-3. **Navegação por estado** — em vez de usar o App Router, a troca de telas era
-   feita com `useState("telaAtiva")` e a página de configurações era renderizada
-   como componente-filho recebendo `onNavigateBack`.
-4. **Autenticação falsa/insegura** — `if (email && password)` aceitava qualquer
-   entrada, sem validação de formato; havia `console.log("[v0] ...")` de
-   depuração espalhados pelo código.
-5. **Números mágicos** — a montagem do calendário usava valores fixos sem nome
-   (`i - 6 + 1`, `dia === 15`, `[3, 7, 12, 15, 18, 22, 28]`, `length: 35`).
-6. **Dados embutidos** — listas de alunos, atividades e KPIs eram declaradas
-   dentro do JSX, misturando dados e apresentação.
-7. **Dependências-lixo** — o `package.json` trazia `svelte`, `@sveltejs/kit`,
-   `vue`, `vue-router` e `@remix-run/react` em um projeto **Next.js**, sem uso.
-8. **Arquivos mortos** — `styles/globals.css` (tema cinza padrão) não era
-   importado em lugar nenhum; o tema real é `app/globals.css`.
-9. **Erros suprimidos no build** — `next.config.mjs` usava
-   `eslint.ignoreDuringBuilds` e `typescript.ignoreBuildErrors`, mascarando
-   problemas reais.
+1. **Long Method / God Object** — `app/page.tsx` acumulava autenticação, tela de
+   login, navegação e a renderização das quatro telas internas.
+2. **Código duplicado** — login embutido em `page.tsx` e também em
+   `app/login/page.tsx` (rota órfã); iniciais do avatar, barras de progresso,
+   cabeçalhos, sidebar e botão de senha repetidos.
+3. **Primitive Obsession** — dados modelados como arrays literais inline, sem
+   tipos nem encapsulamento.
+4. **Navegação por estado** — `useState("telaAtiva")` em vez do App Router.
+5. **Autenticação falsa** — `if (email && password)` aceitava qualquer entrada;
+   `console.log` de depuração no código.
+6. **Números mágicos** — calendário com `i - 6 + 1`, `dia === 15`,
+   `[3,7,12,15,18,22,28]`, `length: 35`.
+7. **Dependências sem uso** — `svelte`, `vue`, `@remix-run/react` em um projeto
+   Next.js; e `styles/globals.css` morto.
+8. **Erros suprimidos** — `next.config.mjs` ignorava ESLint e TypeScript no
+   build.
 
 ---
 
-## 3. Estratégias de refatoração utilizadas
+## 3. Estratégia de refatoração
 
-- **Extração de componentes** — o God Component foi quebrado em ~38 módulos
-  focados: `PageHeader`, `SidebarNav`, `AppHeader`, `AppShell`, `StatCard`,
-  `StudentCard`, `StudentProgressRow`, `ActivityCard`, `ActivityListItem`,
-  `CalendarMonth`, `UserAvatar`, `ProgressBar`, `PasswordInput`, `LoginForm` e
-  as quatro seções de configurações.
-- **Separação de dados e apresentação** — todos os dados de exemplo foram
-  movidos para `lib/data/` (alunos, atividades, navegação, configurações) com
-  tipos centralizados em `lib/domain/types.ts`.
-- **Funções puras testáveis** — regras de negócio isoladas em
-  `lib/domain/initials.ts`, `lib/domain/calendar.ts` (números mágicos viraram
-  parâmetros nomeados) e `lib/auth/validation.ts`.
-- **Migração para o App Router** — a navegação por estado foi substituída por
-  rotas reais (`/login`, `/dashboard`, `/calendario`, `/alunos`, `/atividades`,
-  `/configuracoes`), com um grupo de rotas `(app)` compartilhando o layout
-  autenticado.
-- **Contexto de autenticação** — `AuthProvider` + `useAuth` centralizam login,
-  logout, persistência (`localStorage`) e validação. Um `AuthGuard` protege as
-  rotas internas. Os `console.log` de depuração foram removidos.
-- **Organização de dependências** — removidas as dependências sem uso (Svelte,
-  Vue, Remix) e arquivos mortos (`styles/globals.css`); o build voltou a
+- **Separação de camadas** — apresentação (`components/`, `app/`), estado
+  (`contexts/`, `hooks/`), regras/dados (`services/`, `utils/`) e contratos
+  (`types/`).
+- **Componentização** — o God Object virou ~20 componentes por feature
+  (`auth/`, `dashboard/`, `settings/`, `shared/`).
+- **App Router** — rotas reais agrupadas em `(auth)` e `(dashboard)`, com
+  `AppShell` + `AuthGuard` protegendo o acesso.
+- **Validação com Zod** — `loginSchema` em `utils/validators.ts`.
+- **Eliminação de números mágicos e duplicação** — `utils/calendar.ts`,
+  `utils/formatters.ts`, `utils/constants.ts` e componentes reutilizáveis.
+- **Organização de dependências** — removidas as não utilizadas; build voltou a
   validar lint e tipos.
-- **Eliminação de duplicação** — DRY aplicado em iniciais, barra de progresso,
-  cabeçalhos, sidebar e campo de senha.
 
-### Estrutura após a refatoração
+### Estrutura de diretórios
 
 ```
 app/
-  layout.tsx                 # AuthProvider + fontes
-  page.tsx                   # redireciona para /dashboard
-  login/page.tsx
-  (app)/                     # grupo de rotas autenticadas
-    layout.tsx               # AppShell (header + sidebar + AuthGuard)
-    dashboard/ calendario/ alunos/ atividades/
-  configuracoes/page.tsx
+  (auth)/login/            (dashboard)/{dashboard,calendario,alunos,atividades}/
+  configuracoes/           layout.tsx   page.tsx
 components/
-  auth/      common/      domain/      layout/      settings/
-  ui/                        # componentes shadcn (biblioteca)
-lib/
-  auth/      data/      domain/      utils.ts
+  auth/        dashboard/        settings/        shared/        ui/
+contexts/      AuthContext.tsx
+hooks/         useAuth.ts   useLocalStorage.ts
+services/      authService.ts  studentService.ts  activityService.ts  settingsService.ts
+types/         auth.ts  student.ts  activity.ts  settings.ts
+utils/         constants.ts  validators.ts  formatters.ts  calendar.ts
+__tests__/     components/  contexts/  hooks/  services/  utils/
 ```
 
 ---
 
 ## 4. Testes e cobertura
 
-Suíte com **Vitest + Testing Library**, totalizando **51 testes** em 14
-arquivos. São testadas as funções puras (iniciais, calendário, validação), o
-contexto de autenticação e os principais componentes (login, sidebar, cards,
-progress bar, seções de configuração etc.).
+**Vitest + Testing Library** — **59 testes** em 12 arquivos, cobrindo funções
+puras (formatters, calendar, validators), serviços, contexto de autenticação e
+componentes.
 
-Cobertura sobre o código de aplicação (excluindo a biblioteca `components/ui`,
-dados estáticos e os próprios arquivos de teste):
+Cobertura (exclui `components/ui`, hooks de boilerplate do shadcn e arquivos de
+tipo):
 
 | Métrica | Cobertura |
 | --- | --- |
-| Statements | **82,6%** |
-| Branches | 92,4% |
-| Functions | 75,6% |
-| Lines | **82,6%** |
-
-> A meta do trabalho era ~50%; a suíte cobre confortavelmente acima disso a
-> lógica de negócio e os componentes reutilizáveis.
-
-Comandos:
+| Statements | **85,3%** |
+| Branches | 89,7% |
+| Functions | 81,1% |
+| Lines | **85,3%** |
 
 ```bash
-pnpm test            # roda a suíte uma vez
-pnpm test:watch      # modo interativo
-pnpm test:coverage   # relatório de cobertura (texto + HTML em coverage/)
+pnpm test            # roda a suíte
+pnpm test:coverage   # com relatório de cobertura (coverage/)
 ```
 
 ---
 
 ## 5. Instalação e execução
 
-### Pré-requisitos
-
-- Node.js 20+
-- pnpm 9+ (`npm install -g pnpm`)
-
-### Passos
+Pré-requisitos: Node.js 20+ e pnpm 9+ (`npm install -g pnpm`).
 
 ```bash
-# 1. Instalar dependências
-pnpm install
+pnpm install         # dependências
+pnpm dev             # desenvolvimento — http://localhost:3000
+pnpm build && pnpm start   # produção
 
-# 2. Ambiente de desenvolvimento (http://localhost:3000)
-pnpm dev
-
-# 3. Build de produção
-pnpm build
-pnpm start
-
-# 4. Qualidade
 pnpm lint            # ESLint
+pnpm format          # Prettier
 pnpm test:coverage   # testes + cobertura
 ```
 
-Como a autenticação é simulada, basta informar um **e-mail válido** e uma
-**senha com pelo menos 8 caracteres** na tela de login para acessar o sistema.
+No login, informe um **e-mail válido** e uma **senha com 8+ caracteres**.
 
 ---
 
@@ -182,10 +140,8 @@ Como a autenticação é simulada, basta informar um **e-mail válido** e uma
 | Branch | Conteúdo |
 | --- | --- |
 | `original` | Versão antiga, antes da refatoração. |
-| `main` | Versão refatorada (este README descreve esta versão). |
-
-Para comparar as duas versões:
+| `main` | Versão refatorada. |
 
 ```bash
-git diff original main -- app components lib
+git diff original main
 ```

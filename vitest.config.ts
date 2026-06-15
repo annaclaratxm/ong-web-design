@@ -17,13 +17,20 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "text-summary", "html"],
-      include: ["lib/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+      include: [
+        "components/**/*.{ts,tsx}",
+        "contexts/**/*.{ts,tsx}",
+        "hooks/**/*.{ts,tsx}",
+        "services/**/*.{ts,tsx}",
+        "utils/**/*.{ts,tsx}",
+      ],
       exclude: [
         "components/ui/**",
+        "hooks/use-mobile.ts",
+        "hooks/use-toast.ts",
+        "types/**",
         "**/*.d.ts",
         "**/*.{test,spec}.{ts,tsx}",
-        "lib/domain/types.ts",
-        "lib/data/**",
       ],
     },
   },
