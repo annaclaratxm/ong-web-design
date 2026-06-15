@@ -2,14 +2,13 @@ import type React from "react"
 import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
-import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
+import { AuthProvider } from "@/lib/auth/auth-context"
 import "./globals.css"
 
 export const metadata: Metadata = {
   title: "Centro Educacional Pequeno Milagre - Sistema de Gestão",
   description: "Sistema de gestão educacional para crianças com TEA",
-  generator: "v0.app",
 }
 
 export default function RootLayout({
@@ -20,8 +19,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <Suspense fallback={null}>{children}</Suspense>
-        <Analytics />
+        <AuthProvider>
+          <Suspense fallback={null}>{children}</Suspense>
+        </AuthProvider>
       </body>
     </html>
   )
